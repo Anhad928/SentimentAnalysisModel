@@ -31,7 +31,7 @@ class MELDDataset(Dataset):
     
     def __getitem__(self, idx):
         row = self.data.iloc[idx]
-        video_filename = f"dia{row['Dialogue_ID']}_utt{row['Utterance_ID']}.mp4"
+        video_filename = f"""dia{row['Dialogue_ID']}_utt{row['Utterance_ID']}.mp4"""
         path = os.path.join(self.video_dir, video_filename)
         video_path = os.path.exists(path)
         
