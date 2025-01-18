@@ -1,0 +1,8 @@
+# Ignore all .tar.gz archives
+*.tar.gz
+
+# Ignore the dataset folder
+dataset/
+
+# Ignore the Python virtual environment folder
+.venv/
