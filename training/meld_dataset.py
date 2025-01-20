@@ -5,6 +5,7 @@ import os
 import cv2
 import numpy as np
 import torch
+import subprocess
 class MELDDataset(Dataset):
     def __init__(self, csv_path, video_dir):
        self.data = pd.read_csv(csv_path)
@@ -71,7 +72,25 @@ class MELDDataset(Dataset):
         # before permute : [frames, height, width, channels]
         # after permute : [frames, channels, height, width]
         return torch.FloatTensor(np.array(frames)).permute(0, 3, 1, 2)
-       
+    
+    def _extract_audio_features(self, video_path):
+        audio_path = video_path.replace(".mp4", ".wav")
+        
+        try:
+            subprocess.run([ 
+                'ffmpeg',
+                '-i', video_path,
+                '-vn',
+                '-acodec', 'pcm_s16le',
+                '-ar', '16000',
+                '-ac', '1',
+                audio_path
+                
+                ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+        except Exception as e:
+            raise ValueError(f"Audio error: {str(e)}")
+    
     def __len__(self):
         return len(self.data)
     
@@ -86,7 +105,8 @@ class MELDDataset(Dataset):
             
         text_inputs = self.tokenizer(row["Utterance"], return_tensors="pt", padding="max_length", truncation=True, max_length=128)
         
-        video_frames = self._load_video_frames(path)
+        # video_frames = self._load_video_frames(path)
+        self._extract_audio_features(path)
         
         # print(video_frames)
 
