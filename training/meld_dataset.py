@@ -128,21 +128,52 @@ class MELDDataset(Dataset):
         return len(self.data)
     
     def __getitem__(self, idx):
+        
+        if isinstance(idx, torch.Tensor):
+            idx = idx.item()
         row = self.data.iloc[idx]
-        video_filename = f"""dia{row['Dialogue_ID']}_utt{row['Utterance_ID']}.mp4"""
-        path = os.path.join(self.video_dir, video_filename)
-        video_path_exist = os.path.exists(path)
         
-        if video_path_exist == False:
-            raise FileNotFoundError(f"File {path} not found")
+        try:    
+            row = self.data.iloc[idx]
+            video_filename = f"""dia{row['Dialogue_ID']}_utt{row['Utterance_ID']}.mp4"""
+            path = os.path.join(self.video_dir, video_filename)
+            video_path_exist = os.path.exists(path)
             
-        text_inputs = self.tokenizer(row["Utterance"], return_tensors="pt", padding="max_length", truncation=True, max_length=128)
+            if video_path_exist == False:
+                raise FileNotFoundError(f"File {path} not found")
+                
+            text_inputs = self.tokenizer(row["Utterance"], return_tensors="pt", padding="max_length", truncation=True, max_length=128)
+            
+            video_frames = self._load_video_frames(path)
+            audio_features = self._extract_audio_features(path)
+            
+            # Map sentiment and emotion labels
+            emotion_label = self.emotion_map[row["Emotion"].lower()]
+            sentiment_label = self.sentiment_map[row["Sentiment"].lower()]
+            
+            return {
+                'text_inputs':{
+                    'input_ids': text_inputs["input_ids"].squeeze(),
+                    'attention_mask': text_inputs["attention_mask"].squeeze()
+                },
+                'video_frames': video_frames,
+                'audio_features': audio_features,
+                'emotion_label': torch.tensor(emotion_label),
+                'sentiment_label': torch.tensor(sentiment_label)
+            }
+            
+            # print(video_frames)
+        except Exception as e:
+            print(f"Error Processing: {path} {str(e)}")
+            return None
         
-        # video_frames = self._load_video_frames(path)
-        audio_features = self._extract_audio_features(path)
-        print(audio_features)
-        
-        # print(video_frames)
+def prepare_dataloaders(train_csv, train_video_dir, 
+                        dev_csv, dev_video_dir,
+                        test_csv, test_video_dir, batch_size=32):
+    train_dataset = MELDDataset(train_csv, train_video_dir)
+    dev_dataset = MELDDataset(dev_csv, dev_video_dir)
+    test_dataset = MELDDataset(test_csv, test_video_dir)
+    
 
 if __name__ == "__main__":
     meld = MELDDataset("../dataset/dev/dev_sent_emo.csv", "../dataset/dev/dev_splits_complete")
