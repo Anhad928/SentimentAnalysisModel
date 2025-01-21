@@ -138,6 +138,18 @@ class MultimodalSentimentModel(nn.Module):
         }
 
 
+class MultimodalTrainer:
+    def __init__(self, model, train_loader, val_loader):
+        self.model = model
+        self.train_loader = train_loader
+        self.val_loader = val_loader
+        
+        # Log dataset sized
+        train_size = len(train_loader.dataset)
+        val_size = len(val_loader.dataset)
+        print("")
+        
+
 
 if __name__ == "__main__":
     dataset = MELDDataset(
