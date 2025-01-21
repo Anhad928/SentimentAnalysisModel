@@ -6,3 +6,6 @@ dataset/
 
 # Ignore the Python virtual environment folder
 .venv/
+
+# Ignore pycache
+__pycache__/
