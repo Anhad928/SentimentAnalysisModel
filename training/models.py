@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 from transformers import BertModel
 from torchvision import models as vision_models
 
@@ -69,3 +70,69 @@ class AudioEncoder(nn.Module):
             nn.ReLU(),
             nn.Dropout(0.2)
         )
+        
+    def forward(self, x):
+        x = x.squeeze(1)
+        
+        features = self.conv_layer(x)
+        # Features output: [batch_size, 128, 1]
+        
+        return self.projection(features.squeeze(-1))
+
+
+class MultimodalSentimentModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        
+        # Encoders
+        self.text_encoder = TextEncoder()
+        self.video_encoder = VideoEncoder()
+        self.audio_encoder = AudioEncoder()
+        
+        # Fusion layer
+        self.fusion_layer = nn.Sequential(
+            nn.Linear(128*3, 256),
+            nn.BatchNorm1d(256),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+        )
+        
+        # Classification heads
+        self.emotion_classifier = nn.Sequential(
+            nn.Linear(256, 65),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(64, 7) # Sadness, anger
+            
+        )
+        
+        self.sentiment_classifier =  nn.Sequential(
+            nn.Linear(256, 64),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(64, 3) # negative, neutral, positive
+        )
+        
+    def forward(self, text_input, video_frames, audio_fetures):
+        text_features = self.text_encoder(
+            text_input['input_ids'],
+            text_input['attention_mask']
+        )
+        
+        video_features = self.video_encoder(video_frames)
+        audio_fetures = self.audio_encoder(audio_fetures)
+        
+        # concatenate the features
+        combined_features = torch.cat([
+            text_features,
+            video_features,
+            audio_fetures
+        ], dim=1) # [batch_size, 128 * 3]
+        
+        
+        # FUsion Layer
+        
+        fused_features = self.fusion_layer(combined_features)
+        
+        emotion_output = self.emotion_classifier(fused_features)
+        sentiment_output = self.sentiment_classifier(fused_features)
