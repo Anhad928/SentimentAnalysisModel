@@ -147,8 +147,67 @@ class MultimodalTrainer:
         # Log dataset sized
         train_size = len(train_loader.dataset)
         val_size = len(val_loader.dataset)
-        print("")
+        print("\nDataset sizes:")
+        print(f"Training samples: {train_size:,}")
+        print(f"Validation samples: {val_size:,}")
+        print(f"Batches per epoch: {len(train_loader):,}")
         
+        # Very high: 1, high: 0.1-.01, medium: 1e-1, low: 1e-4, very low: 1e-5
+        self.optimizer = torch.optim.AdamW([
+            {'params': model.text_encoder.parameters(), 'lr': 8e-6},
+            {'params': model.video_encoder.parameters(), 'lr': 8e-5},
+            {'params': model.audio_encoder.parameters(), 'lr': 8e-5},
+            {'params': model.fusion_layer.parameters(), 'lr': 5e-4},
+            {'params': model.emotion_classifier.parameters(), 'lr': 5e-4},
+            {'params': model.sentiment_classifier.parameters(), 'lr': 5e-4}
+        ], weight_decay=1e-5)
+         
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            self.optimizer,
+            mode='min',
+            factor=0.1,
+            patience=2,
+            
+        )
+        
+        self.emotion_criterion = nn.CrossEntropyLoss(
+            label_smoothing=0.05
+        )
+        
+        
+        self.sentiment_criterion = nn.CrossEntropyLoss(
+            label_smoothing=0.05
+        )
+        
+        
+    def train_epoch(self):
+        self.model.train()
+        running_loss = {'total': 0, 'emotion': 0, 'sentiment': 0}
+        
+        for batch in self.train_loader:
+            device = next(self.mode.parameters()).device
+            text_inputs  = {
+                'input_ids': batch['text_input']['text_ids'].to(device),
+                'attention_mask': batch['text_input']['attention_mask'].to(device)
+            }
+            
+            video_frames = batch['video_frames'].to(device)
+            audio_features = batch['audio_features'].to(device)
+            emotion_labels = batch['emotion_label'].to(device)
+            sentiment_labels = batch['sentiment_label'].to(device)
+            
+            # Zero gradient
+            self.optimizer.zero_grad()
+            
+            # Forward Pass
+            outputs = self.model(text_inputs, video_frames, audio_features)
+            
+            # Caculate losses using raw logits
+            emotion_loss = self.emotion_criterion(outputs["emotions"], emotion_labels)
+
+            sentiment_loss = self.sentiment_criterion(outputs["sentiments"], sentiment_labels)
+            
+            total_loss = emotion_loss + sentiment_loss
 
 
 if __name__ == "__main__":
