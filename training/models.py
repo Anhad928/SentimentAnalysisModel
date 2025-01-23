@@ -3,6 +3,7 @@ import torch.nn as nn
 from transformers import BertModel
 from torchvision import models as vision_models
 from meld_dataset import MELDDataset
+from sklearn.metrics import precision_score, accuracy_score
 
 
 class TextEncoder(nn.Module):
@@ -208,6 +209,70 @@ class MultimodalTrainer:
             sentiment_loss = self.sentiment_criterion(outputs["sentiments"], sentiment_labels)
             
             total_loss = emotion_loss + sentiment_loss
+            
+            # Backward pass. Calculate gradients
+            total_loss.backward()
+            
+            # Gradient clipping 
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), max_norm=1.0
+            )
+            
+            self.optimizer.step()
+            
+            # Track losses 
+            running_loss['total'] += total_loss.item()
+            running_loss['emotion'] += emotion_loss.item()
+            running_loss['sentiment'] += sentiment_loss.item()
+            
+        return {k: v/len(self.train_loader) for k,v in running_loss.items()}
+    
+    def validate(self):
+        self.model.eval()
+        val_loss = {'total': 0, 'emotion': 0, 'sentiment': 0}
+        all_emotion_preds = []
+        all_emotion_labels = []
+        all_sentiment_preds = []
+        all_sentiment_labels = []
+        
+        with torch.interface_mode():
+            for batch in self.val_loader:
+                device = next(self.model.parameters()).device
+                text_inputs ={
+                    'input_ids': batch['text_input']['text_ids'].to(device),
+                    'attention_mask': batch['text_input']['attention_mask'].to(device)
+                }
+                video_frames = batch['video_frames'].to(device)
+                audio_features = batch['audio_features'].to(device)
+                emotion_labels = batch['emotion_label'].to(device)
+                sentiment_labels = batch['sentiment_label'].to(device)
+                
+                # Forward pass
+                outputs = self.model(text_inputs, video_frames, audio_features)
+                
+                # Calculate losses using raw logits
+                emotion_loss = self.emotion_criterion(outputs["emotions"], emotion_labels)
+                sentiment_loss = self.sentiment_criterion(outputs["sentiments"], sentiment_labels)
+                total_loss = emotion_loss + sentiment_loss  
+                
+                all_emotion_preds.extend(outputs["emotions"].argmax(dim=1).cpu().numpy())
+                all_emotion_labels.extend(emotion_labels.cpu().numpy())
+                
+                all_sentiment_preds.extend(outputs["sentiments"].argmax(dim=1).cpu().numpy())
+                all_sentiment_labels.extend(sentiment_labels.cpu().numpy())
+                
+                # Track Losses 
+                val_loss['total'] += total_loss.item()
+                val_loss['emotion'] += emotion_loss.item()
+                val_loss['sentiment'] += sentiment_loss.item()
+                
+        avg_loss = {k:v/len(self.val_loader) for k, v in val_loss.items()}
+        
+        # compurte the 
+        emotion_precision = precision_score(all_emotion_labels, all_emotion_preds, average='weighted')
+        emotion_accuracy = accuracy_score(all_emotion_labels, all_emotion_preds)
+        sentiment_precision = precision_score(all_sentiment_labels, all_sentiment_preds, average='weighted')
+        sentiment_accuracy = accuracy_score(all_sentiment_labels, all_sentiment_preds)
 
 
 if __name__ == "__main__":
