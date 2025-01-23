@@ -180,6 +180,9 @@ class MultimodalTrainer:
             
         )
         
+        
+        self.current_train_losses = None
+        
         self.emotion_criterion = nn.CrossEntropyLoss(
             label_smoothing=0.05
         )
@@ -188,6 +191,24 @@ class MultimodalTrainer:
         self.sentiment_criterion = nn.CrossEntropyLoss(
             label_smoothing=0.05
         )
+        
+        
+    def log_metrics(self, losses, metrics=None, phase='train'):
+        if phase == 'train':
+            self.current_train_losses = losses
+        else:
+            self.writer.add_scalar('loss/total/train', self.current_train_losses['total'], self.global_step)
+            self.writer.add_scalar('loss/total/val', self.current_train_losses['total'], self.global_step)
+            self.writer.add_scalar('loss/emotion/train', self.current_train_losses['emotion'], self.global_step)
+            self.writer.add_scalar('loss/emotion/val', losses['emotion'], self.global_step)
+            self.writer.add_scalar('loss/sentiment/train', self.current_train_losses['sentiment'], self.global_step)
+            self.writer.add_scalar('loss/sentiment/val', losses['sentiment'], self.global_step)
+            
+        if metrics:
+            self.writer.add_scalar(f'{phase}/emotion_precision', metrics['emotion_precision'], self.global_step)
+            self.writer.add_scalar(f'{phase}/emotion_accuracy', metrics['emotion_accuracy'], self.global_step)
+            self.writer.add_scalar(f'{phase}/sentiment_precision', metrics['sentiment_precision'], self.global_step)
+            self.writer.add_scalar(f'{phase}/sentiment_accuracy', metrics['sentiment_accuracy'], self.global_step)
         
         
     def train_epoch(self):
@@ -233,6 +254,12 @@ class MultimodalTrainer:
             running_loss['total'] += total_loss.item()
             running_loss['emotion'] += emotion_loss.item()
             running_loss['sentiment'] += sentiment_loss.item()
+            
+            self.log_metrics({
+                'total': total_loss.item(),
+                'emotion': emotion_loss.item(),
+                'sentiment': sentiment_loss.item()
+            })
             
             self.global_step += 1
             
@@ -284,6 +311,13 @@ class MultimodalTrainer:
         emotion_accuracy = accuracy_score(all_emotion_labels, all_emotion_preds)
         sentiment_precision = precision_score(all_sentiment_labels, all_sentiment_preds, average='weighted')
         sentiment_accuracy = accuracy_score(all_sentiment_labels, all_sentiment_preds)
+        
+        self.log_metrics(avg_loss,{
+            'emotion_precision': emotion_precision,
+            'emotion_accuracy': emotion_accuracy,
+            'sentiment_precision': sentiment_precision,
+            'sentiment_accuracy': sentiment_accuracy
+        }, phase=phase)
         
         if phase == 'val':
             self.scheduler.step(avg_loss['total'])
