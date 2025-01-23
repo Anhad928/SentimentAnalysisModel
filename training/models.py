@@ -1,9 +1,12 @@
+from datetime import datetime
+import os
 import torch
 import torch.nn as nn
 from transformers import BertModel
 from torchvision import models as vision_models
 from meld_dataset import MELDDataset
 from sklearn.metrics import precision_score, accuracy_score
+from torch.utils.tensorboard import SummaryWriter
 
 
 class TextEncoder(nn.Module):
@@ -153,6 +156,12 @@ class MultimodalTrainer:
         print(f"Validation samples: {val_size:,}")
         print(f"Batches per epoch: {len(train_loader):,}")
         
+        timestamp = datetime.now().strftime("%b%d_%H-%M-%S") # December 17-22-35
+        base_dir = '/opt/ml/output/tensorboard' if 'SM_MODEL_DIR' in os.environ else 'runs'
+        log_dir = f"{base_dir}/run_{timestamp}"
+        self.writer = SummaryWriter(log_dir=log_dir)
+        self.global_step = 0
+        
         # Very high: 1, high: 0.1-.01, medium: 1e-1, low: 1e-4, very low: 1e-5
         self.optimizer = torch.optim.AdamW([
             {'params': model.text_encoder.parameters(), 'lr': 8e-6},
@@ -225,18 +234,20 @@ class MultimodalTrainer:
             running_loss['emotion'] += emotion_loss.item()
             running_loss['sentiment'] += sentiment_loss.item()
             
+            self.global_step += 1
+            
         return {k: v/len(self.train_loader) for k,v in running_loss.items()}
     
-    def validate(self):
+    def evaluate(self, data_loader, phase='val'):
         self.model.eval()
-        val_loss = {'total': 0, 'emotion': 0, 'sentiment': 0}
+        losses = {'total': 0, 'emotion': 0, 'sentiment': 0}
         all_emotion_preds = []
         all_emotion_labels = []
         all_sentiment_preds = []
         all_sentiment_labels = []
         
         with torch.interface_mode():
-            for batch in self.val_loader:
+            for batch in data_loader:
                 device = next(self.model.parameters()).device
                 text_inputs ={
                     'input_ids': batch['text_input']['text_ids'].to(device),
@@ -262,17 +273,28 @@ class MultimodalTrainer:
                 all_sentiment_labels.extend(sentiment_labels.cpu().numpy())
                 
                 # Track Losses 
-                val_loss['total'] += total_loss.item()
-                val_loss['emotion'] += emotion_loss.item()
-                val_loss['sentiment'] += sentiment_loss.item()
+                losses['total'] += total_loss.item()
+                losses['emotion'] += emotion_loss.item()
+                losses['sentiment'] += sentiment_loss.item()
                 
-        avg_loss = {k:v/len(self.val_loader) for k, v in val_loss.items()}
+        avg_loss = {k:v/len(data_loader) for k, v in losses.items()}
         
         # compurte the 
         emotion_precision = precision_score(all_emotion_labels, all_emotion_preds, average='weighted')
         emotion_accuracy = accuracy_score(all_emotion_labels, all_emotion_preds)
         sentiment_precision = precision_score(all_sentiment_labels, all_sentiment_preds, average='weighted')
         sentiment_accuracy = accuracy_score(all_sentiment_labels, all_sentiment_preds)
+        
+        if phase == 'val':
+            self.scheduler.step(avg_loss['total'])
+        
+        return avg_loss, {
+            'emotion_precision': emotion_precision,
+            'emotion_accuracy': emotion_accuracy,
+            'sentiment_precision': sentiment_precision,
+            'sentiment_accuracy': sentiment_accuracy
+            
+        }
 
 
 if __name__ == "__main__":
