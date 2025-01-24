@@ -9,3 +9,6 @@ dataset/
 
 # Ignore pycache
 __pycache__/
+
+# Ignore runs
+runs/

@@ -198,7 +198,7 @@ class MultimodalTrainer:
             self.current_train_losses = losses
         else:
             self.writer.add_scalar('loss/total/train', self.current_train_losses['total'], self.global_step)
-            self.writer.add_scalar('loss/total/val', self.current_train_losses['total'], self.global_step)
+            self.writer.add_scalar('loss/total/val', losses['total'], self.global_step)
             self.writer.add_scalar('loss/emotion/train', self.current_train_losses['emotion'], self.global_step)
             self.writer.add_scalar('loss/emotion/val', losses['emotion'], self.global_step)
             self.writer.add_scalar('loss/sentiment/train', self.current_train_losses['sentiment'], self.global_step)
