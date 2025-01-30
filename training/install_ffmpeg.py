@@ -32,3 +32,14 @@ def install_ffmpeg():
         )
         ffmpeg_path = result.stdout.strip()
         
+        subprocess.check_call(["cp", ffmpeg_path, "/usr/local/bin/ffmpeg"])
+        
+        subprocess.check_call(["chmod", "+x", "/usr/local/bin/ffmpeg"])
+        
+        print("Installed static FFmpeg successfully.")
+    except Exception as e:
+        print("Failed to install static FFmpeg.")
+        print(e)
+    try:
+        
+        
