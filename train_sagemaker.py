@@ -12,9 +12,9 @@ def start_training():
         source_dir="training",
         role="arn:aws:iam::767397834308:role/sentiment-analysis-execution-role",
         framework_version="2.5.1",
-        py_version="py312",
+        py_version="py311",
         instance_count=1,
-        instance_type="ml.p3.2xlarge",
+        instance_type="ml.g5.xlarge",
         hyperparameters={
             "batch-size": 32,
             "epochs": 25,
