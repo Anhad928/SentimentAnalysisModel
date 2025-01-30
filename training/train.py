@@ -4,6 +4,8 @@ import torchaudio
 import torch
 import tqdm
 import json
+import sys
+from install_ffmpeg import install_ffmpeg
 
 from meld_dataset import prepare_dataloaders
 from models import MultimodalSentimentModel, MultimodalTrainer
@@ -31,7 +33,11 @@ def parse_args():
     return parser.parse_args()
 
 def main():
+    if not install_ffmpeg():
+        print("Error: FFmpeg installation failed. Cannot continue training.")
+        sys.exit(1)
     # Install FFMPEG
+    
     print("Available audio backends:")
     print(str(torchaudio.list_audio_backends()))
     

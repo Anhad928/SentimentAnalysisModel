@@ -41,5 +41,13 @@ def install_ffmpeg():
         print("Failed to install static FFmpeg.")
         print(e)
     try:
+        result = subprocess.run(["ffmpeg", "version"], capture_output=True, text=True, check=True)
+        print("FFmpeg version:")
+        print(result.stdout)
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print("FFmpeg installation verification failed.")
+        return False
+        
         
         
