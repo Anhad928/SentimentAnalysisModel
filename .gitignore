@@ -12,3 +12,6 @@ __pycache__/
 
 # Ignore runs
 runs/
+
+# ignore ds_store
+.DS_Store
