@@ -15,3 +15,6 @@ runs/
 
 # ignore ds_store
 .DS_Store
+
+# Ignore the model.pth file
+model.pth
