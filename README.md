@@ -1,4 +1,4 @@
-# AI Sentiment Analysis Using Friends Webseries Scene Cuts
+# AI Sentiment Analysis Using Friends Web-Series Scene Cuts
 
 This repository contains a full-stack project for training an AI model to perform sentiment analysis using scene cuts from the Friends TV show. The project leverages various AWS tools for data storage, processing, and deployment. The AI model analyzes the sentiment of characters' dialogues, providing insights into the emotional tone of different scenes.
 
