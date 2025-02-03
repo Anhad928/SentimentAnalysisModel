@@ -2,7 +2,7 @@ import torch
 from models import MultimodalSentimentModel
 import os
 import cv2
-import numpy as np 
+import numpy as np
 import subprocess
 import torchaudio
 import whisper
@@ -12,10 +12,10 @@ import json
 import boto3
 import tempfile
 
-
 EMOTION_MAP = {0: "anger", 1: "disgust", 2: "fear",
                3: "joy", 4: "neutral", 5: "sadness", 6: "surprise"}
 SENTIMENT_MAP = {0: "negative", 1: "neutral", 2: "positive"}
+
 
 def install_ffmpeg():
     print("Starting Ffmpeg installation...")
@@ -68,9 +68,10 @@ def install_ffmpeg():
     except (subprocess.CalledProcessError, FileNotFoundError):
         print("FFmpeg installation verification failed")
         return False
-    
+
+
 class VideoProcessor:
-    def process_video(self, video_path, max_length=300):
+    def process_video(self, video_path):
         cap = cv2.VideoCapture(video_path)
         frames = []
 
@@ -112,10 +113,10 @@ class VideoProcessor:
         # Before permute: [frames, height, width, channels]
         # After permute: [frames, channels, height, width]
         return torch.FloatTensor(np.array(frames)).permute(0, 3, 1, 2)
-    
-    
+
+
 class AudioProcessor:
-    def extract_features(self, video_path):
+    def extract_features(self, video_path, max_length=300):
         audio_path = video_path.replace('.mp4', '.wav')
 
         try:
@@ -162,16 +163,18 @@ class AudioProcessor:
         finally:
             if os.path.exists(audio_path):
                 os.remove(audio_path)
-                
+
+
 class VideoUtteranceProcessor:
     def __init__(self):
         self.video_processor = VideoProcessor()
         self.audio_processor = AudioProcessor()
-        
+
     def extract_segment(self, video_path, start_time, end_time, temp_dir="/tmp"):
         os.makedirs(temp_dir, exist_ok=True)
-        segment_path = os.path.join(temp_dir, f"segment_{start_time}_{end_time}.mp4")
-        
+        segment_path = os.path.join(
+            temp_dir, f"segment_{start_time}_{end_time}.mp4")
+
         subprocess.run([
             "ffmpeg", "-i", video_path,
             "-ss", str(start_time),
@@ -181,21 +184,22 @@ class VideoUtteranceProcessor:
             "-y",
             segment_path
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        
+
         if not os.path.exists(segment_path) or os.path.getsize(segment_path) == 0:
-            raise ValueError("Failed to extract segment:" + segment_path)
+            raise ValueError("Segment extraction failed: " + segment_path)
 
         return segment_path
-    
+
+
 def download_from_s3(s3_uri):
     s3_client = boto3.client("s3")
-    bucket = s3_client.split("/")[2]
+    bucket = s3_uri.split("/")[2]
     key = "/".join(s3_uri.split("/")[3:])
-    
-    with tempfile.NamedTemporaryFile(delete=False, suffix = ".mp4") as temp_file:
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_file:
         s3_client.download_file(bucket, key, temp_file.name)
-        return temp_file.name                             
-    
+        return temp_file.name
+
 
 def input_fn(request_body, request_content_type):
     if request_content_type == "application/json":
@@ -203,36 +207,46 @@ def input_fn(request_body, request_content_type):
         s3_uri = input_data['video_path']
         local_path = download_from_s3(s3_uri)
         return {"video_path": local_path}
-    return ValueError("Unsupported content type: " + request_content_type)
+    raise ValueError(f"Unsupported content type: {request_content_type}")
+
+
+def output_fn(prediction, response_content_type):
+    if response_content_type == "application/json":
+        return json.dumps(prediction)
+    raise ValueError(f"Unsupported content type: {response_content_type}")
+
 
 def model_fn(model_dir):
     # Load the model for inference
     if not install_ffmpeg():
-        raise RuntimeError("FFmpeg installation failed. Cannot continue.")
-    
-    
+        raise RuntimeError(
+            "FFmpeg installation failed - required for inference")
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = MultimodalSentimentModel().to(device)
-    
-    model_path = os.path.join(model_dir, "model.pth")
+
+    model_path = os.path.join(model_dir, 'model.pth')
     if not os.path.exists(model_path):
-        model_path = os.path.join(model_dir, "model", "model.pth")
+        model_path = os.path.join(model_dir, "model", 'model.pth')
         if not os.path.exists(model_path):
-            raise FileNotFoundError("Model file not found in directory" + model_path)
-        
-    print(f"Loading model from: {model_path}")
-    model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
+            raise FileNotFoundError(
+                "Model file not found in path " + model_path)
+
+    print("Loading model from path: " + model_path)
+    model.load_state_dict(torch.load(
+        model_path, map_location=device, weights_only=True))
     model.eval()
-    
+
     return {
         'model': model,
-        'tokenizer': AutoTokenizer.from_pretrained("bert-base-uncased"),
+        'tokenizer': AutoTokenizer.from_pretrained('bert-base-uncased'),
         'transcriber': whisper.load_model(
             "base",
             device="cpu" if device.type == "cpu" else device,
         ),
         'device': device
     }
+
 
 def predict_fn(input_data, model_dict):
     model = model_dict['model']
@@ -302,28 +316,28 @@ def predict_fn(input_data, model_dict):
             if os.path.exists(segment_path):
                 os.remove(segment_path)
     return {"utterances": predictions}
-    
-    
-    
-def process_local_video(video_path, model_dir="model"):
+
+
+def process_local_video(video_path, model_dir="model_normalized"):
     model_dict = model_fn(model_dir)
-    
+
     input_data = {'video_path': video_path}
-    
+
     predictions = predict_fn(input_data, model_dict)
-    
+
     for utterance in predictions["utterances"]:
-        print("\nUtterance")
-        print(f"Start: {utterance["start_time"]}, End: {utterance["end_time"]}")
-        print(f"Text: {utterance["text"]}")
+        print("\nUtterance:")
+        print(f"""Start: {utterance['start_time']}s, End: {
+              utterance['end_time']}s""")
+        print(f"Text: {utterance['text']}")
         print("\n Top Emotions:")
-        for emotion in utterance["emotions"]:
-            print(f"{emotion["label"]}: {emotion["confidence"]:.2f}")
+        for emotion in utterance['emotions']:
+            print(f"{emotion['label']}: {emotion['confidence']:.2f}")
         print("\n Top Sentiments:")
-        for sentiment in utterance["sentiments"]:
-            print(f"{sentiment["label"]}: {sentiment["confidence"]:.2f}")
-        print("-" * 50)
-    
-    
+        for sentiment in utterance['sentiments']:
+            print(f"{sentiment['label']}: {sentiment['confidence']:.2f}")
+        print("-"*50)
+
+
 if __name__ == "__main__":
     process_local_video("./dia2_utt3.mp4")
