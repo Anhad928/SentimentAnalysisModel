@@ -4,7 +4,7 @@
 
 Friends Sentiment Analysis Model Training is dedicated to building and training an AI-driven sentiment analysis model using AWS SageMaker and PyTorch. This model is trained on the MELD dataset—with scene cuts from the iconic *Friends* web series—to capture and analyze nuanced emotions. The training pipeline is designed for scalability on AWS Cloud and uses Prisma with SQLite for logging and experiment tracking in development.
 
-This repository is part of a larger full-stack project. For the user-facing application, please refer to our [Friends Sentiment Analyzer Frontend](https://github.com/yourusername/friends-sentiment-frontend).
+This repository is part of a larger full-stack project. For the user-facing application, please refer to our [Friends Sentiment Analyzer Frontend](https://github.com/Anhad928/SentimentAnalysisModel-Saas).
 
 ## Features
 - **AI Model Training:**  
@@ -90,7 +90,7 @@ This repository focuses on the training pipeline:
 
 ## Frontend Integration
 This model training repository is part of a complete full-stack solution. The user-facing frontend application is maintained separately.  
-Check out the [Friends Sentiment Analyzer Frontend](https://github.com/yourusername/friends-sentiment-frontend) for the web interface that interacts with this model.
+Check out the [Friends Sentiment Analyzer Frontend](https://github.com/Anhad928/SentimentAnalysisModel-Saas) for the web interface that interacts with this model.
 
 ## Contributing
 Contributions are welcome! Please fork the repository, create a feature branch, and open a pull request with your changes.
