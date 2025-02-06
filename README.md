@@ -37,7 +37,7 @@ This project aims to:
 - Tailwind CSS
 
 ### Database:
-- PostgreSQL
+- SQlLite (upgrading to PostgresSQl on scaling(
 
 ---
 
