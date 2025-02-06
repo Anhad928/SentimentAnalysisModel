@@ -1,128 +1,96 @@
-# AI Sentiment Analysis Using Friends Web-Series Scene Cuts
+# Friends Sentiment Analysis Model Training
 
-This repository contains a full-stack project for training an AI model to perform sentiment analysis using scene cuts from the Friends TV show. The project leverages various AWS tools for data storage, processing, and deployment. The AI model analyzes the sentiment of characters' dialogues, providing insights into the emotional tone of different scenes.
+Friends Sentiment Analysis Model Training is dedicated to building and training an AI-driven sentiment analysis model using AWS SageMaker and PyTorch. This model is trained on the MELD dataset—with scene cuts from the iconic *Friends* web series—to capture and analyze nuanced emotions. The training pipeline is designed for scalability on AWS Cloud and uses Prisma with SQLite for logging and experiment tracking in development.
 
----
-
-## Project Overview
-
-This project aims to:
-
-1. Extract dialogues and scene cuts from the Friends web series.
-2. Preprocess and label the data for sentiment analysis.
-3. Train a machine learning model using labeled data to classify sentiments (e.g., positive, neutral, negative).
-4. Deploy the trained model to a web application that allows users to upload scenes and get sentiment predictions.
-5. Use AWS tools for efficient data storage, model training, and deployment.
-
----
+This repository is part of a larger full-stack project. For the user-facing application, please refer to our [Friends Sentiment Analyzer Frontend](link).
 
 ## Features
-
-- **Scene Cut Extraction**: Extract and preprocess dialogue from video files.
-- **Sentiment Analysis**: Classify the sentiment of scenes using a trained AI model.
-- **Web Interface**: User-friendly web application for uploading scene clips and displaying results.
-- **Cloud Integration**: Leverages AWS for storage, training, and deployment.
-
----
+- **AI Model Training:**  
+  Train a state-of-the-art sentiment analysis model using AWS SageMaker and PyTorch.
+- **Dataset:**  
+  Utilize the MELD dataset featuring scene cuts from *Friends*.
+- **Scalable Infrastructure:**  
+  Leverage AWS Cloud for scalable model training.
+- **Experiment Tracking:**  
+  Log experiments with Prisma and SQLite (for development purposes).
 
 ## Tech Stack
-
-### Backend:
-- Python
-- Flask
-- TensorFlow/Keras for model training
-
-### Frontend:
-- React.js
-- Tailwind CSS
-
-### Database:
-- SQlLite (upgrading to PostgresSQl on scaling(
-
----
-
-## AWS Tools Used
-
-- **AWS S3**: Storage for video files and preprocessed data.
-- **AWS Lambda**: For processing scene cuts and running preprocessing scripts.
-- **AWS SageMaker**: For model training and deployment.
-- **AWS RDS**: PostgreSQL database for storing labeled data and results.
-- **AWS CloudFront**: For serving the web application securely.
-- **AWS API Gateway**: For managing API requests between the frontend and backend.
-
----
+- **Machine Learning:**  
+  AWS SageMaker, PyTorch
+- **Dataset:**  
+  MELD dataset (Friends scene cuts)
+- **Logging & Experimentation:**  
+  Prisma, SQLite
+- **Cloud:**  
+  AWS Cloud
 
 ## Architecture
+This repository focuses on the training pipeline:
+- **Data Processing:**  
+  Preprocess and manage the MELD dataset.
+- **Model Training:**  
+  Train the sentiment analysis model on AWS SageMaker.
+- **Experiment Logging:**  
+  Store training logs and experiment data using Prisma and SQLite.
+- **Integration:**  
+  The trained model is later integrated with the frontend application.
 
-1. **Data Pipeline**:
-   - Video files are uploaded to an S3 bucket.
-   - AWS Lambda preprocesses and extracts scene cuts and dialogues.
-
-2. **Model Training**:
-   - Labeled data is stored in RDS.
-   - SageMaker trains a sentiment analysis model on the dataset.
-
-3. **Web Application**:
-   - Frontend built with React.js for user interaction.
-   - Backend Flask API handles requests and serves predictions.
-
-4. **Deployment**:
-   - The model is deployed as an endpoint in SageMaker.
-   - The web app is hosted using AWS CloudFront.
-
----
-
-## Setup and Installation
+## Installation & Setup
 
 ### Prerequisites
+- AWS account with SageMaker access
+- Node.js (for running any Node-based scripts)
+- Python environment with PyTorch and AWS SDK installed
+- Git
 
-- Python 3.8+
+### Steps
+1. **Clone the Repository:**
+Install Node.js Dependencies:
 
-- AWS CLI configured with proper permissions
+bash
+Copy
+npm install
+Configure Environment Variables: Create a .env file in the root with your AWS credentials and other configurations. For example:
 
-## Usage
+env
+Copy
+DATABASE_URL="sqlite:./dev.db"
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=your_aws_region
+NODE_ENV=development
+Set Up Python Environment: Create a virtual environment and install required Python packages (e.g., PyTorch, boto3, sagemaker):
 
-1. Upload a video clip from the Friends web series via the web application.
-2. The backend processes the clip, extracts dialogues, and runs sentiment analysis.
-3. The results, including sentiment predictions for each dialogue, are displayed on the frontend.
+bash
+Copy
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+Run Prisma Migrations (if applicable):
 
----
+bash
+Copy
+npx prisma migrate dev --name init
+Usage
+Model Training:
+Execute the training scripts to start model training on AWS SageMaker.
+Monitoring:
+Monitor training progress using the AWS SageMaker dashboard.
+Experiment Tracking:
+Review logs and experiment data stored locally via Prisma and SQLite.
+Frontend Integration
+This model training repository is part of a complete full-stack solution. The user-facing frontend application is maintained separately.
+Check out the Friends Sentiment Analyzer Frontend for the web interface that interacts with this model.
 
-## Dataset
+Contributing
+Contributions are welcome! Please fork the repository, create a feature branch, and open a pull request with your changes.
 
-- **Source**: Scene cuts and dialogues are sourced from the Friends TV show.
-- **Preprocessing**:
-  - Extracted dialogues are labeled with sentiment scores using a semi-supervised approach.
-  - Data is stored in AWS RDS for training.
+License
+This project is licensed under the MIT License. See the LICENSE file for details.
 
----
+Contact
+For questions or collaboration, please contact:
 
-## Model Training
-
-1. Preprocessed data is fetched from the RDS database.
-2. Training occurs in SageMaker using TensorFlow/Keras.
-3. The trained model is evaluated for accuracy and deployed as an API endpoint.
-
----
-
-## Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository.
-2. Create a new branch for your feature:
-   ```bash
-   git checkout -b feature-name
-   ```
-3. Commit your changes and push the branch:
-   ```bash
-   git push origin feature-name
-   ```
-4. Create a pull request.
-
----
-
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file for details.
-
+Name: Anhadpreet Singh
+Email: anhadpre@ualberta.ca
+GitHub: @Anhad928
